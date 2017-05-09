@@ -12,7 +12,41 @@ knitr::opts_chunk$set(echo = TRUE)
 The problem with compositional covariates is that they create multi-collinearity. We'll simulate the dataset created by Brian Cade to illustrate the problem and explore the different possible fixes.
 
 ```{r}
-set.seed(680847638) # doesn't matter what this is -- if you use a different number your results will be different from mine.
+library(tidyverse)
+library(GGally)
+# doesn't matter what this is -- if you use a different number your results will be different from mine.
+set.seed(87)
+df <- data_frame(
+  pos.tot = runif(200,min=0.8,max=1.0),
+  urban.tot = pmin(runif(200,min=0.0,max=0.02),1.0 - pos.tot),
+  neg.tot = (1.0 - pmin(pos.tot + urban.tot,1)),
+  x1= pmax(pos.tot - runif(200,min=0.05,max=0.30),0),
+  x3= pmax(neg.tot - runif(200,min=0.0,max=0.10),0),
+  x2= pmax(pos.tot - x1 - x3/2,0),
+  x4= pmax(1 - x1 - x2 - x3 - urban.tot,0))
+
+ggpairs(df)
 
 ```
+
+So there is a near perfect negative correlation between the things sagegrouse like and the things they don't like, although it gets less bad when considering the individual covariates. In fact, looking at the correlations between just x1 through x4 none of them have correlations bigger than $|0.7|$, so common "rules of thumb" would not exclude them. Now we'll build up a poisson response, and fit all the models 
+```{r}
+mean.y <- exp(-5.8 + 6.3*df$x1 + 15.2*df$x2)
+df$y <- rpois(200,mean.y)
+
+library(MuMIn)
+globalMod <- glm(y ~ x1 + x2 + x3 + x4, data = df, na.action = na.fail, family=poisson())
+fits <- dredge(globalMod)
+model.sel(fits)
+```
+
+That's some crazy stuff! Depending on which other variables are in the model, the coefficients for x1 and x2 can even be negative, although those models have a very low weight. The coefficients for x3 and x4 (things grouse don't like) are in fact positive in all the top models. 
+
+Does looking at model averaged coefficients help?
+
+```{r}
+summary(model.avg(fits))
+```
+
+This is better -- at least the estimates for x1 and x2 are in the right ballpark, and they are considered significantly different from zero. x3 and x4, although positive, are not significantly different from zero. 
 

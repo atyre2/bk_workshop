@@ -128,7 +128,8 @@ pois.x1x2x3x4 <- glm(y.zerotrunc~x1.zt + x2.zt + x3.zt + x4.zt, family=poisson)
 
 
 library(car)
-###inverse of VIF is proportion of variance in x1 that is not linearly ####related to other predictors in model
+###inverse of VIF is proportion of variance in x1 that is not linearly 
+####related to other predictors in model
 
 
 comp.ivif.x1x2 <- (vif(pois.x1x2)[1])^-1
@@ -155,7 +156,8 @@ comp.partSD.x1.x1x3x4 <- comp.ivif.x1x3x4^0.5 * ((nobs(zero.trunc.x1x3x4)-1)/(no
  
 comp.partSD.x1.x1x2x3x4 <- comp.ivif.x1x2x3x4^0.5 * ((nobs(zero.trunc.x1x2x3x4)-1)/(nobs(zero.trunc.x1x2x3x4) -(length(coef(zero.trunc.x1x2x3x4))-1)))^0.5 * sd(x1.zt)
 
-###inverse of VIF is proportion of variance in x2 that is not linearly ####related to other predictors in model
+###inverse of VIF is proportion of variance in x2 that is not linearly 
+####related to other predictors in model
 
 
 comp.ivif.x1x2.x2 <- (vif(pois.x1x2)[2])^-1
@@ -524,7 +526,8 @@ incorrect.modavg.pred.extreme <- (exp(logmu.extreme))/(1.0 - exp(- exp(logmu.ext
 summary(correct.modavg.pred.extreme - incorrect.modavg.pred.extreme)
 
 ###Test to compare lack of equivalence between model-averaged 
-###predictions and predictions from model-averaged coefficients for ###models that are nonlinear functions of parameters.
+###predictions and predictions from model-averaged coefficients for 
+###models that are nonlinear functions of parameters.
 
 x1.new <- 0.80
 x2.new <- 0.05
