@@ -1,0 +1,43 @@
+---
+title: "Effect of Multi-collinearity on Model Averaging"
+author: "Drew Tyre"
+date: "5/9/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rseed <- 9377938
+p = 3 # this many variables
+# this is the mean vector - set to 0 for now
+Means <- rep(0, 3)
+# this is the covariance matrix
+Sigma <- matrix(c(1, 0, .99, 
+                  0, 1, 0,
+                  .99, 0, 1), nrow= p, ncol = p)
+library(MASS)
+library(tidyverse)
+library(GGally)
+library(broom)
+library(car)
+df <- as_data_frame( mvrnorm(n = 100, mu= Means, Sigma=Sigma))
+df <- mutate(df, y = V1 + rnorm(n()))
+models <- list(y~1,
+               y~V1,
+               y~V2,
+               y~V3,
+               y~V1 + V2,
+               y~V1 + V3,
+               y~V2 + V3,
+               y~V1 + V2 + V3)
+fits <- map(models, lm, data=df)
+coefs <- map_df(fits, tidy, .id = "model")
+```
+
+# Discuss
+
+What is model averaging and why do we do it?
+
+# Demonstrate
+
+
