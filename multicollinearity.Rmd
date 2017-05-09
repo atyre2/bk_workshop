@@ -18,7 +18,7 @@ What is multi-collinearity and why is it a problem?
 We will create some artificial data with different levels of correlation.
 
 ```{r}
-rseed <- 9377938
+set.seed(9377938)
 p = 3 # this many variables
 # this is the mean vector - set to 0 for now
 Means <- rep(0, 3)

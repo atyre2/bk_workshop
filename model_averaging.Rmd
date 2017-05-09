@@ -7,7 +7,8 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-rseed <- 9377938
+set.seed(9377938)
+
 p = 3 # this many variables
 # this is the mean vector - set to 0 for now
 Means <- rep(0, 3)
@@ -40,14 +41,14 @@ What is model averaging and why do we do it?
 
 # Demonstrate
 
-Starting with the same simulated data as before, and the 8 models, we will use AIC_c_ to pick a best model and do model averaging.
+Starting with the same simulated data as before, and the 8 models, we will use AIC~c~ to pick a best model and do model averaging.
 
 ```{r}
 library(MuMIn)
 model.sel(fits)
 ```
 
-So there is a significant amount of model selection uncertainty - we have strong evidence against models 1 and 3, but the rest are fairly close together. By the $\Delta AIC < 2$ rule there are 4 models in contention. A 95% confidence set of models includes the top 5 models. I would say that `V1` has the strongest support, but `V3` is in contention as well because the model with `V3` alone is in that top group of models. `V2` alone is worse than the top model so clearly no effect, and comparing the top 2 models I can easily argue it is a pretending variable. 
+So there is a significant amount of model selection uncertainty - we have strong evidence against models 1 and 3, but the rest are fairly close together. By the $\Delta AIC < 2$ rule there are 3 models in contention. A 95% confidence set of models includes the top 5 models. I would say that `V3` and `V1` have the strongest support. `V2` alone is worse than the top model so clearly no effect, and comparing the log-likelihoods for model 3 and model 23 I can easily argue it is a pretending variable because the log-likelihoods are nearly identical. 
 
 Now let's look at the model averaged coefficients and see what they tell us.
 
@@ -55,11 +56,58 @@ Now let's look at the model averaged coefficients and see what they tell us.
 summary(model.avg(fits))
 ```
 
-So this clearly indicates that `V1` is the variable that matters. Notice that relative variable importance gets the actual effects of `V2` and `V3` backwards -- `V3` would be better than `V2` if we didn't have `V1`. Don't use relative variable importance. 
+So this is where the problem Brian Cade brings up rears up to bite us. The estimates of V1 and V3 are much smaller when the other variable is present, so this causes the model averaged coefficients to be biased low compared to the true effect. At least the confidence intervals include 1! That is scant comfort given that they also include 0.
 
 ## Making predictions
 
-There are two ways to make model averaged predictions, but only one of those ways works for all classes of models. Predictions made using the "full" averaged coefficients only work for models that are linear functions of the covariates. For models with a non-linear link function (ie. anything fit with `glm()`), this will generate incorrect answers. The best way to make model averaged predictions is to predict from each model, and then average those predictions. This always works. 
+There are two ways to make model averaged predictions, but only one of those ways works for all classes of models. Predictions made using the "full" averaged coefficients only work for models that are linear functions of the covariates. For models with a non-linear link function (ie. anything fit with `glm()`), this will generate incorrect answers. The best way to make model averaged predictions is to predict from each model, and then average those predictions. This always works. In addition, this way you can get standard errors for the predictions as well
 
+```{r}
+nd <- data_frame(V1 = seq(-2, 2, 0.1),
+                 V2 = 0,
+                 V3 = 0)
+ma_fits <- model.avg(fits)
+pred <- cbind(nd, 
+              y = 1,
+              y_0 = predict(ma_fits, newdata = nd),
+              y_1 = predict(ma_fits, newdata = nd, se.fit = TRUE))
+ggplot(df, aes(x = V1, y = y)) + geom_point() + 
+  geom_line(data = pred, aes(y = y_0)) + 
+  geom_ribbon(data = pred, aes(
+                               ymin = y_0 - 1.96*y_1.se.fit,
+                               ymax = y_0 + 1.96*y_1.se.fit),
+              alpha = 0.4)
+```
 
+The `predict()` method is doing all the work for us, but it might be helpful to do it by hand to see what is going on. We will do everything by hand because the `MuMIn` functions reorder the results without keeping track of the original order.
 
+```{r}
+# first get the vector of weights
+modsel_table <- data_frame(model = model.names(fits),
+                           AIC_c = map_dbl(fits, AICc),
+                           d_aic = AIC_c - min(AIC_c),
+                           m_like = exp(-d_aic/2),
+                           w_ = m_like / sum(m_like))
+
+# now extract the coefficients from the models
+names(fits) <- model.names(fits) # name the models in the list
+coef_fits <- map_df(fits, tidy, .id = "model") # .id will have the names of each list component
+# now we have to put them all together -- first get all combinations of variables and model names
+allcoefs <- complete(coef_fits, model, term, fill = list(estimate = 0, std.error = 0)) %>%
+  left_join(modsel_table)
+# now we summarize that by term, multiplying estimate by weight and summing
+group_by(allcoefs, term) %>%
+  summarize(estimate = sum(estimate * w_))
+```
+
+We could add calculations for the model averaged standard error but in the interests of time we'll skip that. 
+
+Let's see what happens if we use Brian Cade's suggestion of standardizing by the partial SD.
+
+```{r}
+model.sel(fits, beta = "partial.sd")
+```
+
+If we compare that result with the one above using the original set of fits, you can see that the parameter estimates have changed, but the weights of the models are identical to the unstandardized models. In addition the estimates for $\beta_1$ and $\beta_3$ still change dramatically when the other variable is present.  
+
+- Everybody set a new random seed, different from other people, change the correlation between `V1` and `V3` to 0.75, and rerun. We'll put the model averaged coefficients up on the board and see how often this correlation messes up our inference. 
