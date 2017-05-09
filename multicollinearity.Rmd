@@ -1,0 +1,105 @@
+---
+title: "Multi-collinearity"
+author: "Drew Tyre"
+date: "5/9/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Discuss
+
+What is multi-collinearity and why is it a problem? 
+
+### Demonstrate
+
+We will create some artificial data with different levels of correlation.
+
+```{r}
+p = 3 # this many variables
+# this is the mean vector - set to 0 for now
+Means <- rep(0, 3)
+# this is the covariance matrix
+Sigma <- matrix(c(1, 0, .99, 
+                  0, 1, 0,
+                  .99, 0, 1), nrow= p, ncol = p)
+library(MASS)
+library(tidyverse)
+library(GGally)
+df <- as_data_frame( mvrnorm(n = 100, mu= Means, Sigma=Sigma))
+ggpairs(df)
+```
+
+Now we are going to create a response variable *y* that is a function of `V1` but not the other two variables. The actual slope doesn't matter because whatever it is in reality we could rescale the data so it is 1. 
+
+```{r}
+df <- mutate(df, y = V1 + rnorm(n()))
+ggplot(df, aes(x = V1, y=y)) + geom_point() + 
+  geom_smooth(method="lm")
+```
+
+Now we want to fit a series of models to this simple dataset to see the effect of including extraneous parameters into the linear model.
+
+```{r}
+models <- list(y~1,
+               y~V1,
+               y~V2,
+               y~V3,
+               y~V1 + V2,
+               y~V1 + V3,
+               y~V2 + V3,
+               y~V1 + V2 + V3)
+fits <- map(models, lm, data=df)
+library(broom)
+coefs <- map_df(fits, tidy, .id = "model")
+ggplot(coefs, aes(x = model, y=estimate)) + 
+         geom_point() + 
+         facet_wrap(~term) + 
+         geom_errorbar(aes(ymin = estimate - 1.96*std.error,
+                           ymax = estimate + 1.96*std.error))
+```
+
+As you can see, including the co-linear variables 1 and 3 in the same model has a huge effect on the standard errors. In addition, the estimate of $\beta_{3}$ changes dramatically depending on whether `V1` is in the model or not. 
+
+- No one is going to include two variables with a correlation of 0.99 in the same model (well ...). But a correlation of 0.75 is considered not too extreme for some people. Experiment with the covariance between `V1` and `V2` until the correlation is about 0.75 (can you guess *a priori* what value the covariance should have?). Rerun the code to see if a lower correlation makes a difference.
+
+```{r, eval = FALSE, echo=FALSE}
+Sigma2 <- matrix(c(1, 0, .75, 
+                  0, 1, 0,
+                  .75, 0, 1), nrow= p, ncol = p)
+df2 <- as_data_frame(mvrnorm(n = 100, mu= Means, Sigma=Sigma2))
+#ggpairs(df)
+df2 <- mutate(df2, y = V1 + rnorm(n()))
+# ggplot(df, aes(x = V1, y=y)) + geom_point() + 
+# geom_smooth(method="lm")
+fits2 <- map(models, lm, data=df2)
+coefs2 <- map_df(fits2, tidy, .id = "model")
+ggplot(coefs2, aes(x = model, y=estimate)) + 
+         geom_point() + 
+         facet_wrap(~term) + 
+         geom_errorbar(aes(ymin = estimate - 1.96*std.error,
+                           ymax = estimate + 1.96*std.error))
+vif(fits2[[8]])
+```
+
+
+There is a way to calculate how much bigger the standard error is as a result of multi-collinearity: the Variance Inflation Factor, or VIF for short.
+
+```{r}
+library(car)
+vif(fits[[8]])
+```
+
+What do those numbers actually mean? We can calculate the ratio of the variances of $\beta_3$ in models 7 and 8.
+
+```{r}
+filter(coefs, term == "V3",
+       model > 6) %>%
+  mutate(variance = std.error^2,
+         vif_ = lead(variance)/variance) %>%
+  select(vif_)
+```
+
+So the vif is measuring how much the variance of a term increases when there is multi-collinearity present. 
