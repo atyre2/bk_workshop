@@ -50,3 +50,10 @@ summary(model.avg(fits))
 
 This is better -- at least the estimates for x1 and x2 are in the right ballpark, and they are considered significantly different from zero. x3 and x4, although positive, are not significantly different from zero. 
 
+## how do we fix the problem? 
+
+There are a few possible fixes for compositional covariates
+
+- leave one out. This only really helps when there are two categories. In this case we have left out urban cover, and as a result we have kind of already done it, and it's not helping.
+- Reduce correlations with PCA and then use transformed axes
+- use the isometric log ratio transformation
