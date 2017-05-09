@@ -1,0 +1,18 @@
+---
+title: "Compositional covariates"
+author: "Drew Tyre"
+date: "5/9/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The problem with compositional covariates is that they create multi-collinearity. We'll simulate the dataset created by Brian Cade to illustrate the problem and explore the different possible fixes.
+
+```{r}
+set.seed(680847638) # doesn't matter what this is -- if you use a different number your results will be different from mine.
+
+```
+

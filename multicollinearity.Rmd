@@ -53,7 +53,7 @@ models <- list(y~1,
                y~V2 + V3,
                y~V1 + V2 + V3)
 fits <- map(models, lm, data=df)
-library(broom)
+library(broom) # for tidy()
 coefs <- map_df(fits, tidy, .id = "model")
 ggplot(coefs, aes(x = model, y=estimate)) + 
          geom_point() + 
