@@ -40,4 +40,26 @@ What is model averaging and why do we do it?
 
 # Demonstrate
 
+Starting with the same simulated data as before, and the 8 models, we will use AIC_c_ to pick a best model and do model averaging.
+
+```{r}
+library(MuMIn)
+model.sel(fits)
+```
+
+So there is a significant amount of model selection uncertainty - we have strong evidence against models 1 and 3, but the rest are fairly close together. By the $\Delta AIC < 2$ rule there are 4 models in contention. A 95% confidence set of models includes the top 5 models. I would say that `V1` has the strongest support, but `V3` is in contention as well because the model with `V3` alone is in that top group of models. `V2` alone is worse than the top model so clearly no effect, and comparing the top 2 models I can easily argue it is a pretending variable. 
+
+Now let's look at the model averaged coefficients and see what they tell us.
+
+```{r}
+summary(model.avg(fits))
+```
+
+So this clearly indicates that `V1` is the variable that matters. Notice that relative variable importance gets the actual effects of `V2` and `V3` backwards -- `V3` would be better than `V2` if we didn't have `V1`. Don't use relative variable importance. 
+
+## Making predictions
+
+There are two ways to make model averaged predictions, but only one of those ways works for all classes of models. Predictions made using the "full" averaged coefficients only work for models that are linear functions of the covariates. For models with a non-linear link function (ie. anything fit with `glm()`), this will generate incorrect answers. The best way to make model averaged predictions is to predict from each model, and then average those predictions. This always works. 
+
+
 
