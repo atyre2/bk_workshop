@@ -126,4 +126,16 @@ library(robCompositions)
 pivotCoord(as.data.frame(df2))
 ```
 
-So the problem is that this transformation can't handle zeros. Hmmm.
+So the problem is that this transformation can't handle zeros. Hmmm. Ah! there are methods and functions for replacing the zero values.
+
+```{r}
+df2_replaced <- imputeBDLs(as.data.frame(df2), method="lm", dl = rep(0.005,4))
+rowSums(df2_replaced$x)
+df2_ilr <- pivotCoord(df2_replaced$x)
+df2_ilr$y <- df$y
+globalMod_ilr <- glm(y ~ `x1_x3-x2-x4` +  `x3_x2-x4`  + `x2_x4`, data = df2_ilr, na.action = na.fail, family=poisson())
+fits <- dredge(globalMod_ilr)
+model.sel(fits)
+
+```
+
