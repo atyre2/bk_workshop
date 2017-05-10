@@ -1,0 +1,10 @@
+---
+title: "Bangkutien Workshop"
+output: html_document
+---
+
+Here are the links to the handouts:
+
+- [What is multicollinearity](multicollinearity.html)
+- [What does multicollinearity do to model averaging](model_averaging.html)
+- [What to do about compositional covariates](compositional_covariates.html)
