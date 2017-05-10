@@ -57,3 +57,29 @@ There are a few possible fixes for compositional covariates
 - leave one out. This only really helps when there are two categories. In this case we have left out urban cover, and as a result we have kind of already done it, and it's not helping.
 - Reduce correlations with PCA and then use transformed axes
 - use the isometric log ratio transformation
+
+### Using PCA
+
+```{r}
+df2 <- df[, 4:7]
+grouse_pca <- princomp(df2)
+plot(grouse_pca)
+```
+
+and the summary
+
+```{r}
+summary(grouse_pca)
+```
+
+shows us that 95% of the variation is included in the first two components. We will use all 4 components and refit the models used above.
+
+```{r}
+df_pca <- as_data_frame(grouse_pca$scores)
+df_pca$y <- df$y
+globalMod_pca <- glm(y ~ Comp.1 + Comp.2 + Comp.3 + Comp.4, data = df_pca, na.action = na.fail, family=poisson())
+fits <- dredge(globalMod_pca)
+model.sel(fits)
+```
+
+So it looks like the first two components are pretty much carrying all the water together, but not separately. 
