@@ -12,3 +12,4 @@ Here are the links to the handouts:
 Here are the "demo files" of R code from each of our sessions:
 
 - [Wednesday](R/demo_wed.R)
+- [Thursday](R/demo_thursday.R)
